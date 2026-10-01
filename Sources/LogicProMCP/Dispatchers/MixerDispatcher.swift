@@ -44,8 +44,15 @@ struct MixerDispatcher {
     ) async -> CallTool.Result {
         switch command {
         case "set_volume":
-            let track = params["track"]?.intValue ?? params["index"]?.intValue ?? 0
-            let value = params["value"]?.doubleValue ?? params["volume"]?.doubleValue ?? 0.0
+            // InputValidation accepts whole numbers too; `.doubleValue` alone turned `1` into the 0.0 default.
+            let track: Int
+            let value: Double
+            switch (InputValidation.int(params, keys: ["track", "index"], range: 0...9_999, label: "track"),
+                    InputValidation.double(params, keys: ["value", "volume"], range: 0...1, label: "volume")) {
+            case (.success(let index), .success(let level)): (track, value) = (index, level)
+            case (.failure(let message), _), (_, .failure(let message)):
+                return CallTool.Result(content: [.text(message)], isError: true)
+            }
             let result = await router.route(
                 operation: "mixer.set_volume",
                 params: ["index": String(track), "volume": String(value)]
@@ -53,8 +60,15 @@ struct MixerDispatcher {
             return CallTool.Result(content: [.text(result.message)], isError: !result.isSuccess)
 
         case "set_pan":
-            let track = params["track"]?.intValue ?? params["index"]?.intValue ?? 0
-            let value = params["value"]?.doubleValue ?? params["pan"]?.doubleValue ?? 0.0
+            // InputValidation accepts whole numbers too; `.doubleValue` alone turned `1` into the 0.0 default.
+            let track: Int
+            let value: Double
+            switch (InputValidation.int(params, keys: ["track", "index"], range: 0...9_999, label: "track"),
+                    InputValidation.double(params, keys: ["value", "pan"], range: -1...1, label: "pan")) {
+            case (.success(let index), .success(let level)): (track, value) = (index, level)
+            case (.failure(let message), _), (_, .failure(let message)):
+                return CallTool.Result(content: [.text(message)], isError: true)
+            }
             let result = await router.route(
                 operation: "mixer.set_pan",
                 params: ["index": String(track), "pan": String(value)]
